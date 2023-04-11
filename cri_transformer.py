@@ -374,7 +374,6 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
             if reduce_factor > 1:
                 output = output.unfold(0, reduce_factor, reduce_factor).mean(dim=2)
                 target = target[0:target.size(0):reduce_factor]
-
             loss = loss_fn(output, target)
             functional.reset_net(model)
 
@@ -575,7 +574,6 @@ def main():
         collate_fn=collate_fn,
         pin_memory=args.pin_mem,
         use_multi_epochs_loader=args.use_multi_epochs_loader,
-        
     )
 
     loader_eval = create_loader(

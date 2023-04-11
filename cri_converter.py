@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import copy
 from spikingjelly.clock_driven.neuron import MultiStepLIFNode
+from spikingjelly.clock_driven.neuron import LIFNode
 from quant_layer import *
 
 class BN_Folder():
@@ -114,10 +115,6 @@ class Quantize_Network():
                 #     print('Threshold: ',new_model._modules[name].v_threshold)
         return new_model
     
-    # def _quantize_attn(self, layer):
-    #     layer.v_threshold = layer.v_threshold/Quantize_Network.w_delta * 2
-    #     return layer
-    
     def _quantize(self, layer):
         if isinstance(layer, MultiStepLIFNode):
             return self._quantize_LIF(layer)
@@ -128,16 +125,16 @@ class Quantize_Network():
         else:
             return layer
         
-    def _quantize_block(self, layer):
+#     def _quantize_block(self, layer):
         
-        if isinstance(layer, MultiStepLIFNode):
-            return self._quantize_LIF_block(layer)
+#         if isinstance(layer, MultiStepLIFNode):
+#             return self._quantize_LIF_block(layer)
         
-        elif isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d):
-            return self._quantize_layer_block(layer)
+#         elif isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d):
+#             return self._quantize_layer_block(layer)
         
-        else:
-            return layer
+#         else:
+#             return layer
         
     def _quantize_layer(self, layer):
         quantized_layer = copy.deepcopy(layer)
@@ -148,14 +145,9 @@ class Quantize_Network():
         Quantize_Network.w_delta = Quantize_Network.w_alpha/(2**(Quantize_Network.w_bits-1)-1)
         Quantize_Network.weight_quant = weight_quantize_fn(Quantize_Network.w_bits) #reinitialize the weight_quan
         Quantize_Network.weight_quant.wgt_alpha = Quantize_Network.w_alpha
-        # Quantize_Network.w_delta_last_layer = Quantize_Network.w_delta
         
         layer.weight = nn.Parameter(Quantize_Network.weight_quant(layer.weight))
         quantized_layer.weight = nn.Parameter(layer.weight/Quantize_Network.w_delta)
-        
-        # Quantize_Network.w_alpha = abs(max(layer.bias.flatten()) - min(layer.bias.flatten()))
-        # Quantize_Network.w_delta = Quantize_Network.w_alpha/(2**(Quantize_Network.w_bits-1)-1)
-        # Quantize_Network.weight_quant.wgt_alpha = Quantize_Network.w_alpha
 
         layer.bias = nn.Parameter(Quantize_Network.weight_quant(layer.bias))
         quantized_layer.bias = nn.Parameter(layer.bias/Quantize_Network.w_delta)
@@ -165,42 +157,13 @@ class Quantize_Network():
 
     
     def _quantize_LIF(self,layer):
-    
-        # quantized_layer = copy.deepcopy(layer)
-        # quantized_layer.reset()
-        # quantized_layer.v_threshold = quantized_layer.v_threshold/Quantize_Network.w_delta
-        # quantized_layer.reset()
-        # layer.reset()
-        # layer.v_threshold = layer.v_threshold/Quantize_Network.w_delta_last_layer
+        
         layer.v_threshold = layer.v_threshold/Quantize_Network.w_delta
         
         return layer
     
-    def _quantize_layer_block(self, layer):
-        quantized_layer = copy.deepcopy(layer)
-        
-        layer.weight = nn.Parameter(Quantize_Network.weight_quant(layer.weight))
-        quantized_layer.weight = nn.Parameter(layer.weight/Quantize_Network.w_delta)
-
-        layer.bias = nn.Parameter(Quantize_Network.weight_quant(layer.bias))
-        quantized_layer.bias = nn.Parameter(layer.bias/Quantize_Network.w_delta)
-        
-        
-        return quantized_layer
-
-    
-    def _quantize_LIF_block(self,layer):
-    
-        layer.v_threshold = layer.v_threshold/Quantize_Network.w_delta
-        
-        return layer
-    
-#     def _quantize_linear(self, layer):
+#     def _quantize_layer_block(self, layer):
 #         quantized_layer = copy.deepcopy(layer)
-        
-#         Quantize_Network.w_alpha = abs(max(layer.weight.flatten()) - min(layer.weight.flatten()))
-#         Quantize_Network.w_delta =  Quantize_Network.w_alpha/(2**(Quantize_Network.w_bits-1)-1)
-#         Quantize_Network.weight_quant.wgt_alpha = Quantize_Network.w_alpha
         
 #         layer.weight = nn.Parameter(Quantize_Network.weight_quant(layer.weight))
 #         quantized_layer.weight = nn.Parameter(layer.weight/Quantize_Network.w_delta)
@@ -209,25 +172,15 @@ class Quantize_Network():
 #         quantized_layer.bias = nn.Parameter(layer.bias/Quantize_Network.w_delta)
         
 #         return quantized_layer
+
     
-#     def _quantize_conv2d(self, layer):
+#     def _quantize_LIF_block(self,layer):
+    
+#         layer.v_threshold = layer.v_threshold/Quantize_Network.w_delta
         
-#         quantized_layer = copy.deepcopy(layer)
-        
-#         num_kernels = layer.shape[0]
-#         for k in range(num_kernels):
-#             Quantize_Network.w_alpha = abs(max(layer.weight[k].flatten()) - min(layer.weight[k].flatten()))
-#             Quantize_Network.w_delta = Quantize_Network.w_alpha/(2**(Quantize_Network.w_bits-1)-1)
-#             Quantize_Network.weight_quant.wgt_alpha = Quantize_Network.w_alpha
-            
-#             layer.weight = nn.Parameter(Quantize_Network.weight_quant(layer.weight))
-#             quantized_layer.weight = nn.Parameter(layer.weight/Quantize_Network.w_delta)
-            
-#             layer.bias = nn.Parameter(Quantize_Network.weight_quant(layer.bias)) #Do we need this?
-#             quantized_layer.bias = nn.Parameter(layer.bias/Quantize_Network.w_delta)
-            
-#         return quantized_layer
-         
+#         return layer
+
+    
 class CRI_Converter():
     HIGH_SYNAPSE_WEIGHT = 1e6
     def __init__(self):

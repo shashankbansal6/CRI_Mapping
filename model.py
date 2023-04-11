@@ -91,19 +91,16 @@ class SSA(nn.Module):
         q_linear_out = self.q_bn(q_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
         q_linear_out = self.q_lif(q_linear_out)
         q = q_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
-        # activation_histogram(q)
 
         k_linear_out = self.k_linear(x_for_qkv)
         k_linear_out = self.k_bn(k_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T,B,C,N).contiguous()
         k_linear_out = self.k_lif(k_linear_out)
         k = k_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
-        # activation_histogram(k,'k')
 
         v_linear_out = self.v_linear(x_for_qkv)
         v_linear_out = self.v_bn(v_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T,B,C,N).contiguous()
         v_linear_out = self.v_lif(v_linear_out)
         v = v_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
-        # activation_histogram(v,'v')
         
         attn = (q @ k.transpose(-2, -1)) * self.scale
         x = attn @ v
@@ -170,6 +167,8 @@ class SPS(nn.Module):
         x = self.proj_bn(x).reshape(T, B, -1, H, W).contiguous()
         
         x = self.proj_lif(x).flatten(0, 1).contiguous()
+        # print("T0:", x.reshape(T,B, -1, H, W)[0,0,:,0,0] )
+        # print("T1:", x.reshape(T,B, -1, H, W)[1,0,:,0,0] )
 
         x = self.proj_conv1(x)
         x = self.proj_bn1(x).reshape(T, B, -1, H, W).contiguous()
@@ -261,7 +260,7 @@ class Spikformer(nn.Module):
     def forward(self, x):
         x = (x.unsqueeze(0)).repeat(self.T, 1, 1, 1, 1)
         x = self.forward_features(x)
-        x = self.head(x.mean(0))
+        x = self.head(x.mean(0)) 
         return x
 
 
